@@ -6,6 +6,7 @@ import {mdxFromMarkdown, mdxToMarkdown} from 'mdast-util-mdx'
 import {visit} from 'unist-util-visit'
 import {remove} from 'unist-util-remove'
 
+import {SKIP} from 'unist-util-visit'
 import {mdxJsxFromMarkdown, mdxJsxToMarkdown} from 'mdast-util-mdx-jsx'
 
 //import {preface} from '../pages/preface.mdx'
@@ -63,7 +64,19 @@ async function convert(mdxPath) {
     node.type = "text" 
   })
 
-  const out = toMarkdown(tree, {extensions: [mdxJsxToMarkdown()]})
+  visit(tree, 'mdxJsxTextElement', (node, index, parent) => {
+    if (node.children[0] && node.children[0].type == "text") {
+      node.type = "text"
+      node.value = node.children[0].text
+    } else {
+      // Remove elements without children
+      parent.children.splice(index, 1)
+      return [SKIP, index]
+    }
+  })
+
+  //const out = toMarkdown(tree, {extensions: [mdxJsxToMarkdown()]})
+  const out = toMarkdown(tree)
 
   //console.log(out)
 }
