@@ -5,6 +5,7 @@ import {mdxjs} from 'micromark-extension-mdxjs'
 import {mdxFromMarkdown, mdxToMarkdown} from 'mdast-util-mdx'
 import {visit} from 'unist-util-visit'
 import {remove} from 'unist-util-remove'
+import * as path from 'path'
 
 import {SKIP} from 'unist-util-visit'
 import {mdxJsxFromMarkdown, mdxJsxToMarkdown} from 'mdast-util-mdx-jsx'
@@ -27,7 +28,17 @@ const chapters = Object.keys(chaptersMetaJSON).map(chapter => bodyMatterDirector
 
 const frontAndBodyMatter = frontMatter.concat(chapters);
 
+const buildDirectory = './build';
 
+// Remove & Recreate build directory
+try {
+  await fs.rmdir(buildDirectory, { recursive: true, force: true })
+} catch (error) {
+  console.error(error);
+}
+await fs.mkdir(buildDirectory)
+
+var markdownFiles = [];
 async function convert(mdxPath) {
   var doc;
   try {
@@ -75,10 +86,18 @@ async function convert(mdxPath) {
     }
   })
 
-  //const out = toMarkdown(tree, {extensions: [mdxJsxToMarkdown()]})
   const out = toMarkdown(tree)
 
-  //console.log(out)
+  try {
+    const filename = path.basename(mdxPath)
+    const name = path.parse(filename).name
+    const outputMarkdown = buildDirectory + "/" + name + ".md"
+    doc = await fs.writeFile(outputMarkdown, out)
+    markdownFiles.push(outputMarkdown)
+  } catch (error) {
+    console.error(error);
+    return
+  }
 }
 
 for (const mdxPath of frontAndBodyMatter) {
