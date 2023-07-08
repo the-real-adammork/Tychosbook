@@ -14,6 +14,7 @@ import {SKIP} from 'unist-util-visit'
 import {mdxJsxFromMarkdown, mdxJsxToMarkdown} from 'mdast-util-mdx-jsx'
 
 import * as download from 'image-downloader'
+import { fileURLToPath } from "node:url";
 
 function downloadImage(url, filepath) {
     return download.image({
@@ -27,43 +28,51 @@ const getBasenameFromUrl = (urlStr) => {
     return path.basename(url.pathname)
 }
 
-//import {preface} from '../pages/preface.mdx'
+// Path & File Constants
+//
+const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 
-const frontMatterDirectory = path.join("..", "pages")
+const pagesDirectory = path.join("..", "pages")
+const chaptersPath = path.join(pagesDirectory, "chapters")
+
+const buildDirectory = path.join(scriptDir, 'build');
+const imagesDirectory = path.join(buildDirectory, "images");
+
+const imageNotFoundFilename = "image_not_found.png"
+const imageNotFoundPath = path.join(scriptDir, imageNotFoundFilename)
+
+// Front Matter
+//
 const frontMatter = [
   "toc.mdx",
   "foreword.mdx",
   "preface.mdx",
   "please-donate.mdx",
   "about.mdx"
-].map(doc => path.join(frontMatterDirectory, doc));
+].map(doc => path.join(pagesDirectory, doc));
 
-const chaptersPath = path.join("..", "pages", "chapters")
-const chaptersMetaJSONPath = path.join(chaptersPath, "meta.json")
-
-import chaptersMetaJSON from haptersMetaJSONPath assert { type: "json" };
-
+// Chapters & Metadata
+//
+import chaptersMetaJSON from "../pages/chapters/meta.json" assert { type: "json" };
 const chapters = Object.keys(chaptersMetaJSON).map(chapter => path.join(chaptersPath, chapter + ".mdx"))
 
+// Front Matter Combined with Chapters
+//
 const frontAndBodyMatter = frontMatter.concat(chapters);
 
-const buildDirectory = './build';
-
-// Remove & Recreate build directory
+// Remove build directory
+//
 try {
   await fs.rmdir(buildDirectory, { recursive: true, force: true })
-  await fs.rmdir(buildDirectory + '/images', { recursive: true, force: true })
 } catch (error) {
   console.error(error);
 }
 
-const imageNotFoundPath = path.join(process.cwd(), "image_not_found.png")
-
+// Recreate Build Directory
+//
 await fs.mkdir(buildDirectory)
-await fs.mkdir(buildDirectory + '/images')
-await fs.copyFile(imageNotFoundPath, buildDirectory + '/images')
-
-const execd = util.promisify(exec);
+await fs.mkdir(imagesDirectory)
+await fs.copyFile(imageNotFoundPath, path.join(imagesDirectory, imageNotFoundFilename))
 
 const title = "THE TYCHOS - our Geoaxial Binary System (2nd Edition - March 2022)"
 async function epubGenerateSingle(input, name) {
