@@ -29,19 +29,21 @@ const getBasenameFromUrl = (urlStr) => {
 
 //import {preface} from '../pages/preface.mdx'
 
-const frontMatterDirectory = "../pages"
+const frontMatterDirectory = path.join("..", "pages")
 const frontMatter = [
   "toc.mdx",
   "foreword.mdx",
   "preface.mdx",
   "please-donate.mdx",
   "about.mdx"
-].map(doc => frontMatterDirectory + "/" + doc);
+].map(doc => path.join(frontMatterDirectory, doc));
 
-import chaptersMetaJSON from "../pages/chapters/meta.json" assert { type: "json" };
+const chaptersPath = path.join("..", "pages", "chapters")
+const chaptersMetaJSONPath = path.join(chaptersPath, "meta.json")
 
-const bodyMatterDirectory = "../pages/chapters"
-const chapters = Object.keys(chaptersMetaJSON).map(chapter => bodyMatterDirectory + "/" + chapter + ".mdx")
+import chaptersMetaJSON from haptersMetaJSONPath assert { type: "json" };
+
+const chapters = Object.keys(chaptersMetaJSON).map(chapter => path.join(chaptersPath, chapter + ".mdx"))
 
 const frontAndBodyMatter = frontMatter.concat(chapters);
 
@@ -54,8 +56,12 @@ try {
 } catch (error) {
   console.error(error);
 }
+
+const imageNotFoundPath = path.join(process.cwd(), "image_not_found.png")
+
 await fs.mkdir(buildDirectory)
 await fs.mkdir(buildDirectory + '/images')
+await fs.copyFile(imageNotFoundPath, buildDirectory + '/images')
 
 const execd = util.promisify(exec);
 
@@ -67,8 +73,6 @@ async function epubGenerateSingle(input, name) {
   //console.log('stdout:', stdout);
   //console.log('stderr:', stderr);
 }
-
-const imageNotFoundPath = process.cwd() + "image_not_found.png"
 
 var markdownFiles = [];
 var markdown = [];
@@ -106,7 +110,11 @@ async function convert(mdxPath) {
   var imageURLtoFile = {};
   for (const url of imageURLs) {
     console.log(url)
-    const filename = path.basename(url);
+    let filename = path.basename(url);
+    
+    // URI encoded things cause problems, needs to be decoded
+    filename = decodeURI(filename)
+
     const imagePath = process.cwd() + "/build" + '/' + "images"+ '/' + filename;
 
     console.log(url)
@@ -183,6 +191,7 @@ try {
 } catch (error) {
   console.error(error);
 }
+
 // Compile markdown to epub with pandoc
 const allMarkdownFiles = markdownFiles.map(doc => '"'+doc+'"').join(' ')
 
