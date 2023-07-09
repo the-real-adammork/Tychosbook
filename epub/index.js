@@ -16,6 +16,9 @@ import {mdxJsxFromMarkdown, mdxJsxToMarkdown} from 'mdast-util-mdx-jsx'
 import * as download from 'image-downloader'
 import { fileURLToPath } from "node:url";
 
+// Helper functions
+//
+
 function downloadImage(url, filepath) {
     return download.image({
        url,
@@ -41,8 +44,11 @@ const imagesDirectory = path.join(buildDirectory, "images");
 const imageNotFoundFilename = "image_not_found.png"
 const imageNotFoundPath = path.join(scriptDir, imageNotFoundFilename)
 
-// Front Matter
-//
+const coverImageFilename = "cover-image.jpg"
+const coverImagePath = path.join(scriptDir, coverImageFilename)
+
+const metadataPath = path.join(scriptDir, "metadata.yml")
+
 const frontMatter = [
   "toc.mdx",
   "foreword.mdx",
@@ -51,32 +57,31 @@ const frontMatter = [
   "about.mdx"
 ].map(doc => path.join(pagesDirectory, doc));
 
-// Chapters & Metadata
-//
 import chaptersMetaJSON from "../pages/chapters/meta.json" assert { type: "json" };
 const chapters = Object.keys(chaptersMetaJSON).map(chapter => path.join(chaptersPath, chapter + ".mdx"))
 
-// Front Matter Combined with Chapters
-//
 const frontAndBodyMatter = frontMatter.concat(chapters);
 
 // Remove build directory
 //
-try {
-  await fs.rmdir(buildDirectory, { recursive: true, force: true })
-} catch (error) {
-  console.error(error);
-}
+//try {
+  //await fs.rmdir(buildDirectory, { recursive: true, force: true })
+//} catch (error) {
+  //console.error(error);
+//}
 
 // Recreate Build Directory
 //
-await fs.mkdir(buildDirectory)
-await fs.mkdir(imagesDirectory)
-await fs.copyFile(imageNotFoundPath, path.join(imagesDirectory, imageNotFoundFilename))
+//await fs.mkdir(buildDirectory)
+//await fs.mkdir(imagesDirectory)
 
-const title = "THE TYCHOS - our Geoaxial Binary System (2nd Edition - March 2022)"
-async function epubGenerateSingle(input, name) {
-  const command = 'pandoc -o TYCHOS_'+name+'.epub --metadata title="'+title+'" -f gfm -t epub ' + input
+// Copy standard images to build folder
+//
+//await fs.copyFile(imageNotFoundPath, path.join(imagesDirectory, imageNotFoundFilename))
+//await fs.copyFile(coverImagePath, path.join(imagesDirectory, coverImageFilename))
+
+async function epubGenerate(input) {
+  const command = 'pandoc -o TYCHOS.epub "' + metadataPath + '" -f gfm -t epub ' + input
   console.log(command)
   const { stdout, stderr } = await exec(command);
   //console.log('stdout:', stdout);
@@ -129,7 +134,7 @@ async function convert(mdxPath) {
     console.log(url)
     try {
       if (await fsExists(imagePath) == false) {
-        await downloadImage(url, imagePath)
+        //await downloadImage(url, imagePath)
         imageURLtoFile[url] = imagePath
       }
     } catch (error) {
@@ -180,7 +185,7 @@ async function convert(mdxPath) {
     doc = await fs.writeFile(outputMarkdown, out)
     markdownFiles.push(outputMarkdown)
     markdown.push(out)
-    //await epubGenerateSingle(outputMarkdown, name)
+    //await epubGenerate(outputMarkdown)
   } catch (error) {
     console.error(error);
     return
@@ -193,23 +198,25 @@ for (const mdxPath of frontAndBodyMatter) {
   await convert(mdxPath)
 }
 
-try {
-  const combinedMarkdown = buildDirectory + "/tychos_combined.md"
-  await fs.writeFile(combinedMarkdown, markdown.join(' '))
-  await epubGenerateSingle(combinedMarkdown, "combined")
-} catch (error) {
-  console.error(error);
-}
+//try {
+  //const combinedMarkdown = buildDirectory + "/tychos_combined.md"
+  //await fs.writeFile(combinedMarkdown, markdown.join(' '))
+  //await epubGenerateSingle(combinedMarkdown, "combined")
+//} catch (error) {
+  //console.error(error);
+//}
 
 // Compile markdown to epub with pandoc
 const allMarkdownFiles = markdownFiles.map(doc => '"'+doc+'"').join(' ')
 
-async function epubGenerate() {
-  const command = 'pandoc -o TYCHOS.epub --metadata title="'+title+'" -f gfm -t epub ' + allMarkdownFiles
-  console.log(command)
-  const { stdout, stderr } = await exec(command);
-  //console.log('stdout:', stdout);
-  //console.log('stderr:', stderr);
-}
+console.log(allMarkdownFiles)
 
-//await epubGenerate()
+//async function epubGenerate() {
+  //const command = 'pandoc -o TYCHOS.epub --metadata title="'+title+'" -f gfm -t epub ' + allMarkdownFiles
+  //console.log(command)
+  //const { stdout, stderr } = await exec(command);
+  ////console.log('stdout:', stdout);
+  ////console.log('stderr:', stderr);
+//}
+
+await epubGenerate(allMarkdownFiles)
