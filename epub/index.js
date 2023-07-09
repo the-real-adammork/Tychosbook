@@ -64,21 +64,21 @@ const frontAndBodyMatter = frontMatter.concat(chapters);
 
 // Remove build directory
 //
-//try {
-  //await fs.rmdir(buildDirectory, { recursive: true, force: true })
-//} catch (error) {
-  //console.error(error);
-//}
+try {
+  await fs.rmdir(buildDirectory, { recursive: true, force: true })
+} catch (error) {
+  console.error(error);
+}
 
 // Recreate Build Directory
 //
-//await fs.mkdir(buildDirectory)
-//await fs.mkdir(imagesDirectory)
+await fs.mkdir(buildDirectory)
+await fs.mkdir(imagesDirectory)
 
 // Copy standard images to build folder
 //
-//await fs.copyFile(imageNotFoundPath, path.join(imagesDirectory, imageNotFoundFilename))
-//await fs.copyFile(coverImagePath, path.join(imagesDirectory, coverImageFilename))
+await fs.copyFile(imageNotFoundPath, path.join(imagesDirectory, imageNotFoundFilename))
+await fs.copyFile(coverImagePath, path.join(imagesDirectory, coverImageFilename))
 
 async function epubGenerate(input) {
   const command = 'pandoc -o TYCHOS.epub "' + metadataPath + '" -f gfm -t epub ' + input
@@ -89,7 +89,6 @@ async function epubGenerate(input) {
 }
 
 var markdownFiles = [];
-var markdown = [];
 async function convert(mdxPath) {
   var doc;
   try {
@@ -108,12 +107,6 @@ async function convert(mdxPath) {
   remove(tree, 'mdxJsxFlowElement')
   remove(tree, 'mdxFlowElement')
   remove(tree, 'mdxFlowExpression')
-
-  visit(tree, (node) => {
-    if (node.type.includes("mdx")) {
-      //console.log(node)
-    }
-  })
 
   var imageURLs = [];
   visit(tree, 'image', (node, index, parent) => {
@@ -134,7 +127,7 @@ async function convert(mdxPath) {
     console.log(url)
     try {
       if (await fsExists(imagePath) == false) {
-        //await downloadImage(url, imagePath)
+        await downloadImage(url, imagePath)
         imageURLtoFile[url] = imagePath
       }
     } catch (error) {
@@ -184,8 +177,6 @@ async function convert(mdxPath) {
     const outputMarkdown = buildDirectory + "/" + name + ".md"
     doc = await fs.writeFile(outputMarkdown, out)
     markdownFiles.push(outputMarkdown)
-    markdown.push(out)
-    //await epubGenerate(outputMarkdown)
   } catch (error) {
     console.error(error);
     return
@@ -198,25 +189,7 @@ for (const mdxPath of frontAndBodyMatter) {
   await convert(mdxPath)
 }
 
-//try {
-  //const combinedMarkdown = buildDirectory + "/tychos_combined.md"
-  //await fs.writeFile(combinedMarkdown, markdown.join(' '))
-  //await epubGenerateSingle(combinedMarkdown, "combined")
-//} catch (error) {
-  //console.error(error);
-//}
-
 // Compile markdown to epub with pandoc
 const allMarkdownFiles = markdownFiles.map(doc => '"'+doc+'"').join(' ')
-
-console.log(allMarkdownFiles)
-
-//async function epubGenerate() {
-  //const command = 'pandoc -o TYCHOS.epub --metadata title="'+title+'" -f gfm -t epub ' + allMarkdownFiles
-  //console.log(command)
-  //const { stdout, stderr } = await exec(command);
-  ////console.log('stdout:', stdout);
-  ////console.log('stderr:', stderr);
-//}
 
 await epubGenerate(allMarkdownFiles)
